@@ -1,84 +1,78 @@
 # Order Management System
 
-A simple Order Management System (OMS) backend built with **FastAPI**, exposing REST APIs for user authentication, product listing, and order CRUD.
+Simple Order Management System REST API built with FastAPI.
 
-## Tech Stack
+## Tech Choices
 
-- **Framework:** FastAPI
-- **Server:** Uvicorn
-- **Database:** PostgreSQL 16 (via Docker)
-- **Config:** pydantic-settings (`.env` based)
-- **Package Manager:** uv
-
+| Framework | FastAPI | Async-native, auto-generated docs, Pydantic validation |
+| Server | Uvicorn | ASGI server, pairs with FastAPI |
+| Database | PostgreSQL 16 | Relational, strong for transactional data |
+| ORM | SQLAlchemy 2.x (async) | Mature, async support, migration-friendly |
+| Migrations | Alembic (sync) | Standard for SQLAlchemy, autogenerate support |
+| Auth | JWT (python-jose) | Stateless token auth, simple for REST APIs |
+| Password Hashing | Argon2id (argon2-cffi) | OWASP recommended, memory-hard |
+| Config | pydantic-settings | Type-safe env loading with validation |
 
 ## Prerequisites
 
 - Python 3.11+
-- [uv](https://docs.astral.sh/uv/) package manager
-- Docker & Docker Compose (for PostgreSQL)
+- [uv](https://docs.astral.sh/uv/)
+- Docker & Docker Compose
 
 ## Setup
 
-1. **Clone the repository** and navigate into the project:
+```bash
+cp .env.example .env
+uv sync
+docker-compose up -d
+```
 
-   ```bash
-   cd order-management-system
-   ```
+## Database Migrations
 
-2. **Copy the environment file** and adjust if needed:
+```bash
+uv run alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
+```
 
-   ```bash
-   cp .env.example .env
-   ```
+## Seed Products
 
-3. **Install dependencies:**
+```bash
+uv run python -m app.seeds.products
+```
 
-   ```bash
-   uv sync
-   ```
-
-4. **Start the PostgreSQL database:**
-
-   ```bash
-   docker-compose up -d
-   ```
-
-## Running the Application
+## Run
 
 ```bash
 uv run python main.py
 ```
 
-The server starts at **http://localhost:8000** with auto-reload enabled in debug mode.
+Server starts at http://localhost:8000. API docs at http://localhost:8000/docs.
 
-### Verify it works
+## API Endpoints
 
-```bash
-curl http://localhost:8000/api/v1/health
-# → {"status":"ok"}
-```
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | /api/v1/health | No | Health check |
+| POST | /api/v1/auth/register | No | Register user |
+| POST | /api/v1/auth/login | No | Login, returns JWT |
+| GET | /api/v1/products | Yes | List products |
+| POST | /api/v1/orders | Yes | Create order |
+| GET | /api/v1/orders | Yes | List user's orders |
+| GET | /api/v1/orders/{id} | Yes | Get order by ID |
+| PUT | /api/v1/orders/{id} | Yes | Update order |
+| POST | /api/v1/orders/{id}/cancel | Yes | Cancel order |
 
-### API Documentation
+Protected routes require `Authorization: Bearer <token>` header.
 
-FastAPI auto-generates interactive docs:
-
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
-
-## Running Tests
+## Tests
 
 ```bash
 uv run pytest
 ```
 
-## Stopping the Database
+## Stop
 
 ```bash
-docker-compose down
-```
-
-To also remove persisted data:
-
-```bash
-docker-compose down -v
+docker-compose down        # keep data
+docker-compose down -v     # remove data
 ```
