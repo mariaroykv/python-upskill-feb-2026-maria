@@ -67,8 +67,88 @@ Protected routes require `Authorization: Bearer <token>` header.
 ## Tests
 
 ```bash
-uv run pytest
+uv run pytest                    # run all tests
+uv run pytest tests/test_utils.py   # single file
+uv run pytest -v                 # verbose output
 ```
+
+## API Reference
+
+Base URL: `http://localhost:8000`  
+Auth header: `Authorization: Bearer <token>`  
+Error format: `{"error": "<message>", "path": "<request path>"}`
+
+### Auth
+
+**Register**
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "password123", "full_name": "Jane Doe"}'
+```
+Response `200`: `{"id": 1, "email": "user@example.com", "full_name": "Jane Doe", "is_active": true}`  
+Response `400`: `{"error": "Email already registered"}`  
+Response `422`: `{"detail": [...]}` — validation failed (e.g. password < 8 chars)
+
+**Login**
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "password123"}'
+```
+Response `200`: `{"access_token": "<jwt>", "token_type": "bearer"}`  
+Response `401`: `{"error": "Invalid credentials"}`
+
+### Products
+
+**List products** _(requires auth)_
+```bash
+curl http://localhost:8000/api/v1/products \
+  -H "Authorization: Bearer <token>"
+```
+Response `200`: array of `{id, name, description, price, stock_quantity, is_available, ...}`
+
+### Orders
+
+**Create order** _(requires auth)_
+```bash
+curl -X POST http://localhost:8000/api/v1/orders/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"items": [{"product_id": 1, "quantity": 2}], "shipping_address": "123 Main St"}'
+```
+Response `200`: order object with `id`, `status`, `total_amount`, `order_items`  
+Response `400`: product not found / insufficient stock / empty items  
+Response `422`: quantity ≤ 0 or items list empty
+
+**List orders** _(requires auth)_
+```bash
+curl http://localhost:8000/api/v1/orders/ -H "Authorization: Bearer <token>"
+```
+
+**Get order**
+```bash
+curl http://localhost:8000/api/v1/orders/1 -H "Authorization: Bearer <token>"
+```
+Response `404`: `{"error": "Order not found"}`  
+Response `403`: `{"error": "Access denied"}`
+
+**Update order** _(PENDING only)_
+```bash
+curl -X PUT http://localhost:8000/api/v1/orders/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"shipping_address": "456 New St"}'
+```
+
+**Cancel order**
+```bash
+curl -X POST http://localhost:8000/api/v1/orders/1/cancel \
+  -H "Authorization: Bearer <token>"
+```
+Response `400`: already cancelled or delivered
+
+Interactive docs (Swagger UI) are also available at http://localhost:8000/docs.
 
 ## Stop
 
